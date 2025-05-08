@@ -2,8 +2,6 @@
 
 A beginner-friendly application demonstrating how to use Stripe's payment processing in a test environment.
 
-![Stripe Test App Demo](https://via.placeholder.com/800x400.png?text=Stripe+Test+App+Demo)
-
 ## Overview
 
 This project is a simple payment processing application that demonstrates how to:
@@ -68,6 +66,8 @@ Before you start, make sure you have:
 2. **Open your browser**
    - Go to [http://localhost:3000](http://localhost:3000)
    - You should see the payment form
+  
+   - _Alternatively use the LiveServer extension in VSCode_
 
 ## Testing Payments
 
