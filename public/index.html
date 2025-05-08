@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stripe Test Payment</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 500px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    #card-element {
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: white;
+    }
+    button {
+      background: #5469d4;
+      color: white;
+      font-family: inherit;
+      font-weight: bold;
+      border-radius: 4px;
+      border: 0;
+      padding: 12px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 16px;
+      width: 100%;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    #payment-result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #e6f7e6;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Stripe Test Payment</h1>
+    <p>Use test card number: 4242 4242 4242 4242</p>
+    <p>Any future expiration date, any 3 digits for CVC, and any postal code</p>
+    
+    <div class="form-group">
+      <label for="amount">Amount (USD)</label>
+      <input type="number" id="amount" value="10" min="1" step="0.01">
+    </div>
+    
+    <form id="payment-form">
+      <div class="form-group">
+        <label for="card-element">Credit card</label>
+        <div id="card-element"></div>
+        <div id="card-errors" role="alert"></div>
+      </div>
+      
+      <button id="submit-button" type="submit">Pay now</button>
+    </form>
+    
+    <div id="payment-result" style="display: none;"></div>
+  </div>
+
+  <script>
+    // Initialize Stripe
+    const stripe = Stripe('pk_test_51RMIbXI0tcUva7Dxwq66jH98uA5gChgXajt3bwSWe34pHMXmXN3kDVGWc5MYKRvkazluZiV6LKAOPokUSIMOd47Q00Z0q0UG4B'); // Replace with your publishable key
+    const elements = stripe.elements();
+    
+    // Create card element
+    const cardElement = elements.create('card');
+    cardElement.mount('#card-element');
+    
+    // Handle real-time validation errors from the card element
+    cardElement.on('change', function(event) {
+      const displayError = document.getElementById('card-errors');
+      if (event.error) {
+        displayError.textContent = event.error.message;
+      } else {
+        displayError.textContent = '';
+      }
+    });
+    
+    // Handle form submission
+    const form = document.getElementById('payment-form');
+    const submitButton = document.getElementById('submit-button');
+    
+    form.addEventListener('submit', async function(event) {
+      event.preventDefault();
+      
+      // Disable the submit button to prevent repeated clicks
+      submitButton.disabled = true;
+      
+      const amount = document.getElementById('amount').value;
+      
+      // Create the PaymentIntent on your server
+      const response = await fetch('/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ amount }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Confirm the payment with the client secret
+        const result = await stripe.confirmCardPayment(data.clientSecret, {
+          payment_method: { card: cardElement }
+        });
+        
+        handlePaymentResult(result);
+      } else {
+        // Show error from server
+        showResult('error', data.error);
+        submitButton.disabled = false;
+      }
+    });
+    
+    function handlePaymentResult(result) {
+      if (result.error) {
+        // Show error to customer
+        showResult('error', result.error.message);
+      } else {
+        // The payment succeeded!
+        showResult('success', 'Payment successful! Payment ID: ' + result.paymentIntent.id);
+      }
+      submitButton.disabled = false;
+    }
+    
+    function showResult(type, message) {
+      const resultElement = document.getElementById('payment-result');
+      resultElement.className = type;
+      resultElement.textContent = message;
+      resultElement.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
